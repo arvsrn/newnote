@@ -30,7 +30,7 @@
 </script>
 
 {#each blocks as block, i}
-    <Text {addNewText} bind:content={blocks[i].content} bind:type={blocks[i].type} {i} focused={i == focused}/>
+    <Text {addNewText} bind:content={blocks[i].content} bind:type={blocks[i].type} {i} focused={i == focused} onDragStart={() => {selecto = false}} onDragEnd={() => {selecto = true}}/>
 {/each}
 
 <!--
@@ -38,17 +38,18 @@
     so this must be rendered only on the client
 -->
 {#if selecto}
-<Selecto
-    container={document.body}
-    dragContainer={window}
-    selectableTargets={[".block"]}
-    selectByClick={false}
-    selectFromInside={true}
-    keyContainer={window}
-    hitRate={0}
-    on:select={({ detail: e }) => {
-        e.added.forEach(selected);
-        e.removed.forEach(unselected);
-    }}
-/>
+    <Selecto
+        container={document.body}
+        dragContainer={window}
+        selectableTargets={[".block"]}
+        selectByClick={false}
+        selectFromInside={true}
+        keyContainer={window}
+        hitRate={0}
+        preventRightClick={true}
+        on:select={({ detail: e }) => {
+            e.added.forEach(selected);
+            e.removed.forEach(unselected);
+        }}
+    />
 {/if}

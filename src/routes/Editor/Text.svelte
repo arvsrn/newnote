@@ -24,26 +24,44 @@
     export let focused: boolean;
 
     export let type: "text" | "heading" | "quote" | "code" | "sub-heading" | "title" = "text";
-    export let color: "white" | "grey" | "red" | "orange" | "brown" | "pink" | "purple" | "blue" | "green" = "white"
-    
+    export let color: "white" | "grey" | "red" | "orange" | "brown" | "pink" | "purple" | "blue" | "green" = "white";
+
     let self: HTMLDivElement;
     
     let showContextMenu: boolean = false;
     let contextMenuPosition: number[] = [0, 0];
     
     let conversionMenuPosition: number[] = [0, 0];
+    let selfPosition: number[] = [0, 0];
+
+    let style = `top: ${selfPosition[1]}px; left: ${selfPosition[0]}px`;
+    let mounted: boolean = false
 
     const capitalise = (arg: string) => arg.charAt(0).toUpperCase() + arg.slice(1);
 
     onMount(() => {
         if (focused) self.focus();
+        mounted = true;
     });
+
+    const handleEvent = () => {
+        if (mounted) {
+            if (dragging) onDragStart();
+            else onDragEnd();
+        }
+    }
 
     let onHover: boolean = false;
     let dragging: boolean = false;
+
+    export let onDragStart: () => void;
+    export let onDragEnd: () => void;
+
+    $: dragging, handleEvent();
+    $: selfPosition, style = `top: ${selfPosition[1]}px; left: ${selfPosition[0]}px;`;
 </script>
 
-<main on:mouseenter={() => onHover = true} on:mouseleave={() => onHover = false}>
+<main on:mouseenter={() => onHover = true} on:mouseleave={() => onHover = false} class:dragging={dragging} {style}>
     <button on:mousedown={() => dragging = true} class:showing={onHover || dragging} on:mouseenter={() => onHover = true} on:mouseleave={() => onHover = false}><DragHandleDots2 size={18}/></button>
 
     <div contenteditable="true" class="{type} {color} block" aria-placeholder={""} bind:this={self} on:contextmenu|preventDefault={(e) => {
@@ -89,9 +107,16 @@
 </ContextMenu>
 {/if}
 
-<svelte:window on:mouseup={() => dragging = false}/>
+<svelte:window on:mouseup={() => dragging = false} on:mousemove={(e) => {
+    selfPosition = [e.clientX, e.clientY];
+    console.log(selfPosition);
+}}/>
 
 <style>
+    .dragging {
+        position: absolute;
+    }
+
     div[contenteditable="true"] {
         width: 500px;
         height: fit-content;
@@ -169,10 +194,10 @@
 
         width: fit-content;
         height: fit-content;
-        padding: 4px 1px;
+        padding: 2px 0px;
         border-radius: 4px;
 
-        cursor: pointer;
+        cursor: grab;
         color: #A1A0A1;
 
         transition: background 0.05s ease-in-out, opacity 0.1s ease-in-out;
