@@ -32,7 +32,6 @@
 
     button:hover {
         color: white;
-        background-color: #1C1D1D;
-        border: 1px solid #232323;
+        background-color: #232323;
     }
 </style>

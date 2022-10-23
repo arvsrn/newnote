@@ -15,18 +15,16 @@
     import Brown from "../Icons/Brown.svelte";
     import Orange from "../Icons/Orange.svelte";
     import { onMount } from "svelte";
-    import { fade } from "svelte/transition";
+    import { blocks } from "../../stores";
+    import type { Block } from "src/global";
 
-    export let content: string;
-    export let addNewText: (i: number) => void;
+    export let actions: Record<string, (i: number) => void>;
 
     export let i: number;
     export let focused: boolean;
 
-    export let type: "text" | "heading" | "quote" | "code" | "sub-heading" | "title" = "text";
-    export let color: "white" | "grey" | "red" | "orange" | "brown" | "pink" | "purple" | "blue" | "green" = "white";
-
     let self: HTMLDivElement;
+    let main: HTMLElement;
     
     let showContextMenu: boolean = false;
     let contextMenuPosition: number[] = [0, 0];
@@ -35,9 +33,14 @@
     let selfPosition: number[] = [0, 0];
 
     let style = `top: ${selfPosition[1]}px; left: ${selfPosition[0]}px`;
-    let mounted: boolean = false
+    let mounted: boolean = false;
+
+    let blocksInner: Block[];
+    blocks.subscribe(blocks_ => blocksInner = blocks_);
+    // $: blocksInner, blocks.update(_ => blocksInner);
 
     const capitalise = (arg: string) => arg.charAt(0).toUpperCase() + arg.slice(1);
+    const updateStyle = () => {if (dragging) style = `top: ${selfPosition[1]}px; left: ${selfPosition[0]}px;`}
 
     onMount(() => {
         if (focused) self.focus();
@@ -58,22 +61,26 @@
     export let onDragEnd: () => void;
 
     $: dragging, handleEvent();
-    $: selfPosition, style = `top: ${selfPosition[1]}px; left: ${selfPosition[0]}px;`;
+    $: selfPosition, updateStyle();
+
+    $: i, console.log(i);
 </script>
 
-<main on:mouseenter={() => onHover = true} on:mouseleave={() => onHover = false} class:dragging={dragging} {style}>
+<main on:mouseenter={() => onHover = true} on:mouseleave={() => onHover = false} class:dragging={dragging} {style} bind:this={main}>
     <button on:mousedown={() => dragging = true} class:showing={onHover || dragging} on:mouseenter={() => onHover = true} on:mouseleave={() => onHover = false}><DragHandleDots2 size={18}/></button>
 
-    <div contenteditable="true" class="{type} {color} block" aria-placeholder={""} bind:this={self} on:contextmenu|preventDefault={(e) => {
+    <div contenteditable="true" class="{blocksInner[i].type} {blocksInner[i].color} block" aria-placeholder={""} bind:this={self} on:contextmenu|preventDefault={(e) => {
         showContextMenu = true;
         contextMenuPosition = [e.clientX, e.clientY];
-    }} on:keydown={(e) => {
-        if (e.key === "Enter") addNewText(i);
+    }} on:keyup={(e) => {        
+        if (e.key === "Enter") actions.addNewText(i);
+        blocksInner[i].content = self.textContent || "";
+        blocks.update(_ => blocksInner);
     }} on:focusin={() => {
-        self.ariaPlaceholder = capitalise(type) + "...";
+        self.ariaPlaceholder = capitalise(blocksInner[i].type) + "...";
     }} on:focusout={() => {
         self.ariaPlaceholder = "";
-    }}>{content}</div>
+    }}>{blocksInner[i].content}</div>
 </main>
 
 {#if showContextMenu}
@@ -81,35 +88,34 @@
     <Option text="Color" action={() => {}} icon={BlendingMode}>
         <TurnIntoMenu bind:contextMenuPosition={conversionMenuPosition} slot="submenu">
             <Title>Change color</Title>
-            <TurnIntoMenuOption text="White" action={() => {color = "white"}} icon={White}/>
-            <TurnIntoMenuOption text="Grey" action={() => {color = "grey"}} icon={Grey}/>
-            <TurnIntoMenuOption text="Red" action={() => {color = "red"}} icon={Red}/>
-            <TurnIntoMenuOption text="Orange" action={() => {color = "orange"}} icon={Orange}/>
-            <TurnIntoMenuOption text="Brown" action={() => {color = "brown"}} icon={Brown}/>
-            <TurnIntoMenuOption text="Pink" action={() => {color = "pink"}} icon={Pink}/>
-            <TurnIntoMenuOption text="Purple" action={() => {color = "purple"}} icon={Purple}/>
-            <TurnIntoMenuOption text="Blue" action={() => {color = "blue"}} icon={Blue}/>
-            <TurnIntoMenuOption text="Green" action={() => {color = "green"}} icon={Green}/>
+            <TurnIntoMenuOption text="White" action={() => {blocksInner[i].color = "white"; blocks.update(_ => blocksInner);}} icon={White}/>
+            <TurnIntoMenuOption text="Grey" action={() => {blocksInner[i].color = "grey"; blocks.update(_ => blocksInner);}} icon={Grey}/>
+            <TurnIntoMenuOption text="Red" action={() => {blocksInner[i].color = "red"; blocks.update(_ => blocksInner);}} icon={Red}/>
+            <TurnIntoMenuOption text="Orange" action={() => {blocksInner[i].color = "orange"; blocks.update(_ => blocksInner);}} icon={Orange}/>
+            <TurnIntoMenuOption text="Brown" action={() => {blocksInner[i].color = "brown"; blocks.update(_ => blocksInner);}} icon={Brown}/>
+            <TurnIntoMenuOption text="Pink" action={() => {blocksInner[i].color = "pink"; blocks.update(_ => blocksInner);}} icon={Pink}/>
+            <TurnIntoMenuOption text="Purple" action={() => {blocksInner[i].color = "purple"; blocks.update(_ => blocksInner);}} icon={Purple}/>
+            <TurnIntoMenuOption text="Blue" action={() => {blocksInner[i].color = "blue"; blocks.update(_ => blocksInner);}} icon={Blue}/>
+            <TurnIntoMenuOption text="Green" action={() => {blocksInner[i].color = "green"; blocks.update(_ => blocksInner);}} icon={Green}/>
     </TurnIntoMenu>
     </Option>
     <Option text="Turn into..." action={() => {}} icon={Update}>
         <TurnIntoMenu bind:contextMenuPosition={conversionMenuPosition} slot="submenu">
             <Title>Turn into</Title>
-            <TurnIntoMenuOption text="Heading" action={() => {type="heading"}} icon={Heading}/>
-            <TurnIntoMenuOption text="Sub Heading" action={() => {type="sub-heading"}} icon={Heading}/>
-            <TurnIntoMenuOption text="Title" action={() => {type="title"}} icon={Heading}/>
-            <TurnIntoMenuOption text="Text" action={() => {type="text"}} icon={LetterCaseCapitalize}/>
-            <TurnIntoMenuOption text="Quote" action={() => {type="quote"}} icon={Quote}/>
+            <TurnIntoMenuOption text="Heading" action={() => {blocksInner[i].type="heading"; blocks.update(_ => blocksInner);}} icon={Heading}/>
+            <TurnIntoMenuOption text="Sub Heading" action={() => {blocksInner[i].type="sub-heading"; blocks.update(_ => blocksInner);}} icon={Heading}/>
+            <TurnIntoMenuOption text="Title" action={() => {blocksInner[i].type="title"; blocks.update(_ => blocksInner);}} icon={Heading}/>
+            <TurnIntoMenuOption text="Text" action={() => {blocksInner[i].type="text"; blocks.update(_ => blocksInner);}} icon={LetterCaseCapitalize}/>
+            <TurnIntoMenuOption text="Quote" action={() => {blocksInner[i].type="quote"; blocks.update(_ => blocksInner);}} icon={Quote}/>
         </TurnIntoMenu>
     </Option>
-    <Option text="Delete" action={() => {}} icon={CrumpledPaper} key="Del"/>
+    <Option text="Delete" action={() => {actions.deleteSelected(i)}} icon={CrumpledPaper} key="Del"/>
     <Option text="Duplicate" action={() => {}} icon={Copy} key="Ctrl+D"/>
 </ContextMenu>
 {/if}
 
 <svelte:window on:mouseup={() => dragging = false} on:mousemove={(e) => {
     selfPosition = [e.clientX, e.clientY];
-    console.log(selfPosition);
 }}/>
 
 <style>
@@ -135,6 +141,7 @@
         align-items: center;
 
         transition: background 0.2s ease-in;
+        word-wrap: break-word;
     }
 
     .text {

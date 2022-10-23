@@ -5,32 +5,46 @@
     import Selecto from "svelte-selecto";
     import ListView from 'svelte-sortable-flat-list-view';
     import { onMount } from 'svelte';
-
-    interface Block {
-        type: "text" | "heading" | "quote" | "code" | "sub-heading" | "title";
-        color: "white" | "grey" | "red" | "orange" | "brown" | "pink" | "purple" | "blue" | "green";
-        content: string;
-    }
+    import type { Block } from "src/global";
+    import { blocks } from "../../stores";
 
     const addNewText = (i: number) => {
-        blocks.splice(i, 0, {type: "text", content: "", color: "white"});
+        console.log('add new text');
+        let updatedBlocks = [...blocksInner];
+        updatedBlocks.splice(i + 1, 0, {type: "text", content: "", color: "white", id: ''})
         focused = i + 1;
-        blocks = blocks;
-        console.log(i, focused);
+        blocks.update(_ => updatedBlocks);
     };
 
-    const selected = (el: HTMLElement) => el.style.background = "rgba(1, 145, 254, 0.17)";
-    const unselected = (el: HTMLElement) => el.style.background = "transparent";
+    const deleteSelected = (i: number) => {
+        if (i > 0) {
+            let updatedBlocks = [...blocksInner];
+            updatedBlocks.splice(i, 1);
+            blocks.update(_ => updatedBlocks);
+        }
+    };
 
-    let blocks: Block[] = [{type: "text", content: "", color: "white"}];
+    let actions = {
+        deleteSelected: deleteSelected,
+        addNewText: addNewText,
+    }
+
+    const selected = (el: HTMLElement) => el.classList.add('selected');
+    const unselected = (el: HTMLElement) => el.classList.remove('selected');
+
+    let blocksInner: Block[];
     let selecto: boolean = false;
     let focused: number = 0;
+
+    blocks.subscribe(blocks_ => blocksInner = blocks_);
+
+    $: blocksInner, console.log(JSON.stringify(blocksInner));
 
     onMount(() => selecto = true);
 </script>
 
-{#each blocks as block, i}
-    <Text {addNewText} bind:content={blocks[i].content} bind:type={blocks[i].type} {i} focused={i == focused} onDragStart={() => {selecto = false}} onDragEnd={() => {selecto = true}}/>
+{#each blocksInner as block, i}
+    <Text {actions} {i} focused={i == focused} onDragStart={() => {selecto = false}} onDragEnd={() => {selecto = true}}/>
 {/each}
 
 <!--
